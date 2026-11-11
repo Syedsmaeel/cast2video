@@ -2,7 +2,10 @@ name: Rust CI
 
 on:
   push:
-    branches: [ "main/root" ]
+    # No branch filter = runs on every branch push, including throwaway
+    # test branches. Swap this back to `branches: [ "main/root" ]` (or add
+    # a pattern like `branches: [ "main/root", "test/**" ]`) if you'd
+    # rather only test specific branches.
   pull_request:
     branches: [ "main/root" ]
 
@@ -67,5 +70,3 @@ jobs:
           name: Nextest Audit Results
           path: target/nextest/ci/junit.xml
           reporter: java-junit
-      - name: Build and run tests with nextest
-        run: cargo nextest run --profile ci --workspace --all-targets --no-fail-fast --no-tests=pass
