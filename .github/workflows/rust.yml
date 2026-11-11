@@ -67,3 +67,5 @@ jobs:
           name: Nextest Audit Results
           path: target/nextest/ci/junit.xml
           reporter: java-junit
+      - name: Build and run tests with nextest
+        run: cargo nextest run --profile ci --workspace --all-targets --no-fail-fast --no-tests=pass
