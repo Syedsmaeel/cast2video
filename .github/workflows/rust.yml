@@ -8,9 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  # Cache compiled crate artifacts via GitHub Actions cache
-  RUSTC_WRAPPER: sccache
-  SCCACHE_GHA_ENABLED: "true"
   # Use mold linker for 5x-10x faster linking on Linux
   CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: clang
   CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
@@ -18,9 +15,9 @@ env:
 jobs:
   audit:
     name: Security & Lint Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
@@ -39,36 +36,34 @@ jobs:
 
   build-and-test:
     name: Build & Nextest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       checks: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache Cargo dependencies and build artifacts
+        uses: Swatinem/rust-cache@v2
+
       - name: Install clang and mold linker
         run: sudo apt-get update && sudo apt-get install -y clang mold
 
-      - name: Install prebuilt sccache and cargo-nextest
+      - name: Install prebuilt cargo-nextest
         uses: taiki-e/install-action@v2
         with:
-          tool: sccache,cargo-nextest
+          tool: cargo-nextest
 
-      # Compiles the workspace and runs all tests in one step
       - name: Build and run tests with nextest
         run: cargo nextest run --profile ci --workspace --all-targets --no-fail-fast
 
       - name: Publish JUnit test results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: always()
         with:
           name: Nextest Audit Results
           path: target/nextest/ci/junit.xml
           reporter: java-junit
-
-      - name: Show sccache hit rate
-        if: always()
-        run: sccache --show-stats
